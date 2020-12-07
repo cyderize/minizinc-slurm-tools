@@ -68,6 +68,8 @@ class SolItem(pytest.Item):
         # Check solution
         solution: Dict[str, Any] = self.result["solution"]
         model = Model(self.result["model"])
+        model["mzn_ignore_symmetry_breaking_constraints"] = True
+        model["mzn_ignore_redundant_constraints"] = True
         if "data_file" in self.result and len(self.result["data_file"]) > 0:
             model.add_file(self.result["data_file"])
         status = Status[self.result["status"]]
