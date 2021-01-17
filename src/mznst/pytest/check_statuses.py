@@ -52,13 +52,6 @@ class StatsItem(pytest.Item):
         return self.fspath, 0, "usecase: {}".format(self.name)
 
 
-class ConfTest:
-    def pytest_collect_file(self, parent, path):
-        if path.basename.endswith("_stats.yml"):
-            return StatsFile.from_parent(parent, fspath=path)
-
-
-@click.command()
-@click.argument("dir")
-def main(dir: str):
-    pytest.main([dir], plugins=[ConfTest()])
+def pytest_collect_file(parent, path):
+    if path.basename.endswith("_stats.yml"):
+        return StatsFile.from_parent(parent, fspath=path)

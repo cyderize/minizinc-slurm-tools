@@ -1,6 +1,6 @@
-from typing import Any, Dict
+from typing import Any, Dict, Iterable, Optional
 import random
-import click
+from _pytest.config import Config
 import pytest
 from minizinc import Model, Solver, Status
 from minizinc.helpers import check_solution
@@ -78,29 +78,38 @@ class SolItem(pytest.Item):
         ), "Incorrect solution"
 
         # Record that the problem is satisfiable for use in check_statuses
-        self.config.cache.set("sat/" + self.key, True)
+        self.user_properties.append(("sat", (self.key, True)))
 
-        # Record objective bounds for use in check_statuses
-        objective = solution.get("objective", None)
-        if objective is not None:
-            min_obj, max_obj = self.config.cache.get("obj/" + self.key, (None, None))
-            if min_obj is None or objective < min_obj:
-                min_obj = objective
-            if max_obj is None or objective > max_obj:
-                max_obj = objective
-            self.config.cache.set("obj/" + self.key, [min_obj, max_obj])
+        # Record objective for use in check_statuses
+        if "objective" in solution:
+            self.user_properties.append(
+                ("objective", (self.key, solution["objective"]))
+            )
 
     def reportinfo(self):
         return self.fspath, 0, "usecase: {}".format(self.name)
 
 
-class ConfTest:
+class SolutionChecker:
     checker: Solver
-    num_check: int
+    config: Config
 
-    def __init__(self, check: int) -> None:
+    def pytest_configure(self, config):
+        self.config = config
         self.checker = Solver.lookup("gecode")
-        self.num_check = check if check > 0 else None
+
+    @property
+    def num_check(self) -> Optional[int]:
+        check = self.config.getoption("--check")
+        return check if check is not None and check > 0 else None
+
+    def pytest_addoption(self, parser):
+        parser.addoption(
+            "--check",
+            type=int,
+            default=1,
+            help="Number of solutions to check per instance (randomly chooses which, but always checks final solution).",
+        )
 
     def pytest_collect_file(self, parent, path):
         if path.basename.endswith("_sol.yml"):
@@ -108,14 +117,23 @@ class ConfTest:
                 parent, fspath=path, checker=self.checker, num_check=self.num_check
             )
 
+    def pytest_runtest_logreport(self, report):
+        # Record satisfiability and objective bounds for check_statuses
+        if hasattr(report, "user_properties"):
+            for k, v in report.user_properties:
+                if k == "objective":
+                    key, objective = v
+                    min_obj, max_obj = self.config.cache.get("obj/" + key, (None, None))
+                    if min_obj is None or objective < min_obj:
+                        min_obj = objective
+                    if max_obj is None or objective > max_obj:
+                        max_obj = objective
+                    self.config.cache.set("obj/" + key, [min_obj, max_obj])
+                elif k == "sat":
+                    key, sat = v
+                    self.config.cache.set("sat/" + key, sat)
 
-@click.command()
-@click.option(
-    "-c",
-    "--check",
-    default=1,
-    help="Number of solutions to check per instance (randomly chooses which, but always checks final solution).",
-)
-@click.argument("dir")
-def main(dir: str, **kwargs):
-    pytest.main([dir], plugins=[ConfTest(**kwargs)])
+
+def pytest_addoption(parser, pluginmanager):
+    # Register the plugin at this point
+    pluginmanager.register(SolutionChecker())

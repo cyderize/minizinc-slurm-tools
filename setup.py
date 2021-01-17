@@ -22,9 +22,7 @@ setuptools.setup(
     python_requires=">=3.6",
     entry_points={
         "console_scripts": [
-            "check_solutions=mznst.scripts.check_solutions:main",
-            "check_statuses=mznst.scripts.check_statuses:main",
-            "compare_results=mznst.scripts.compare_results:main",
+            "mznst=mznst.cli:main",
         ],
     },
     install_requires=[
@@ -34,5 +32,6 @@ setuptools.setup(
         "pandas>=1.1,<2",
         "seaborn>=0.11",
         "ruamel.yaml>=0.16",
+        "bokeh>=2.2.3"
     ],
 )
