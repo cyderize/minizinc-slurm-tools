@@ -30,7 +30,6 @@ setuptools.setup(
         "click>=7,<8",
         "minizinc>=0.4.2,<0.5",
         "pandas>=1.1,<2",
-        "seaborn>=0.11",
         "ruamel.yaml>=0.16",
         "bokeh>=2.2.3"
     ],
