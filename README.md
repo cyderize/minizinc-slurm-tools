@@ -1,5 +1,7 @@
 # MiniZinc SLURM Tools
 
+> **NOTE**: Superceded by [mzn-bench](https://github.com/MiniZinc/mzn-bench).
+
 Tools for analysing [minizinc-slurm](https://github.com/Dekker1/minizinc-slurm) results.
 
 ## Installation
